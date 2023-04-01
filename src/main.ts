@@ -12,7 +12,9 @@ dotenv.config();
         if (!ID || !PASS) throw new Error("ID or PASS is not set.");
 
         // storageフォルダに保存
-        const downloadDir = path.join(__dirname, 'storage');
+        const downloadDir = path.join(__dirname, '..', 'storage');
+        console.log(downloadDir);
+        
         const browser = await chromium.launch({
             headless: true,
             downloadsPath: downloadDir,

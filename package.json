@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "ts-node main.ts"
+    "start": "ts-node src/main.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.32.1",
