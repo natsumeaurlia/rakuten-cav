@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import { sumTotalPayment } from './util';
 
 dotenv.config();
 
@@ -57,9 +58,6 @@ dotenv.config();
             const downloadPromise = page.waitForEvent('download', {timeout: 10000});
             await page.click('.stmt-c-btn-dl.stmt-csv-btn');
             const download = await downloadPromise;
-            // Wait for the download process to complete
-            console.log(await download.path());
-            // Save downloaded file somewhere
             const unixtime = Math.floor(new Date().getTime() / 1000);
             await download.saveAs(path.join(downloadDir, unixtime + 'rakuten-card.csv'));
         }
@@ -76,6 +74,11 @@ dotenv.config();
         }
 
         await browser.close();
+
+        const total = await sumTotalPayment(path.join(__dirname, 'storage'))
+       
+        // bashに出力
+        console.info(total);
 
     } catch (err) {
         console.error(err);
