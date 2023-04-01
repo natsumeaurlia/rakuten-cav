@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { sumTotalPayment } from './util';
+import { lineNotify } from './line-notify';
 
 dotenv.config();
 
@@ -13,8 +14,6 @@ dotenv.config();
 
         // storageフォルダに保存
         const downloadDir = path.join(__dirname, '..', 'storage');
-        console.log(downloadDir);
-        
         const browser = await chromium.launch({
             headless: true,
             downloadsPath: downloadDir,
@@ -29,6 +28,8 @@ dotenv.config();
         const page = await context.newPage();
 
         await page.goto("https://www.rakuten-card.co.jp/e-navi/index.xhtml");
+        await page.waitForLoadState('domcontentloaded');
+
         await page.waitForTimeout(3000);
 
         await page.fill('input[name="u"]', ID);
@@ -39,7 +40,7 @@ dotenv.config();
             page.waitForLoadState('networkidle'),
         ]);
 
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(5000);
 
         // 利用明細画面に遷移する
         await Promise.all([
@@ -47,6 +48,7 @@ dotenv.config();
             page.waitForLoadState('networkidle'),
         ]);
 
+        await page.waitForSelector('.stmt-head-regist-card__select__box');
         const availableOptionsTexts = await page.evaluate(() => {
             const cardSelect = <HTMLInputElement>document.querySelector('.stmt-head-regist-card__select__box');
             return Array.from(cardSelect.querySelectorAll('option'))
@@ -57,7 +59,7 @@ dotenv.config();
 
         // 利用明細CSVのダウンロード
         const downloadFunc = async () => {
-            const downloadPromise = page.waitForEvent('download', {timeout: 10000});
+            const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
             await page.click('.stmt-c-btn-dl.stmt-csv-btn');
             const download = await downloadPromise;
             const unixtime = Math.floor(new Date().getTime() / 1000);
@@ -77,10 +79,19 @@ dotenv.config();
 
         await browser.close();
 
-        const total = await sumTotalPayment(path.join(__dirname, 'storage'))
-       
-        // bashに出力
-        console.info(total);
+        const total = await sumTotalPayment(downloadDir)
+
+        // line 通知
+        const LINE_TOKEN = process.env.LINE_ACCESS_TOKEN;
+        if (!LINE_TOKEN) throw new Error("LINE_TOKEN is not set.");
+        
+        const totalStr = total.map((t, index) => {
+            return `クレジットカード${index + 1}の支払い金額:
+            ${Object.entries(t).map(([key, value]) => `${key}: ${value}`)}`
+        }).join('\n')
+
+        lineNotify(`--支払いレポート--
+        ${totalStr}`, LINE_TOKEN);
 
     } catch (err) {
         console.error(err);
