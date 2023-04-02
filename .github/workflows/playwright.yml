@@ -41,7 +41,7 @@ jobs:
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
 
     - name: Run Playwright
       env:
