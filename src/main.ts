@@ -85,13 +85,12 @@ dotenv.config();
         const LINE_TOKEN = process.env.LINE_ACCESS_TOKEN;
         if (!LINE_TOKEN) throw new Error("LINE_TOKEN is not set.");
         
-        const totalStr = total.map((t, index) => {
-            return `クレジットカード${index + 1}の支払い金額:
-            ${Object.entries(t).map(([key, value]) => `${key}: ${value}`)}`
-        }).join('\n')
-
-        lineNotify(`--支払いレポート--
-        ${totalStr}`, LINE_TOKEN);
+        total.forEach((t, index) => {
+            const str = `クレジットカード${index + 1}の支払い金額:
+            ${Object.entries(t).map(([key, value]) => `${key}: ${value}
+            `)}`
+            lineNotify(str, LINE_TOKEN);
+        });
 
     } catch (err) {
         console.error(err);
