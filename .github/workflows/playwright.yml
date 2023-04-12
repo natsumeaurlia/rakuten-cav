@@ -1,7 +1,7 @@
 name: Playwright
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
 
   schedule:
     # 毎日4時間ごとに
@@ -16,36 +16,36 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 16
-        cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: cache
-      uses: actions/cache@v3
-      id: playwright-cache
-      with:
-        path: |
-          ~/.cache/ms-playwright
-          ~/.cache/ms-playwright-chromium
-          ~/.cache/ms-playwright-firefox
-          ~/.cache/ms-playwright-webkit
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
+      - name: cache
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/ms-playwright-chromium
+            ~/.cache/ms-playwright-firefox
+            ~/.cache/ms-playwright-webkit
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
-    - name: Run Playwright
-      env:
-        ID: ${{ secrets.ID }}
-        PASS: ${{ secrets.PASS }}
-        LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
-      run: npm run start --silent
+      - name: Run Playwright
+        env:
+          ID: ${{ secrets.ID }}
+          PASS: ${{ secrets.PASS }}
+          LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+        run: npm run start --silent
