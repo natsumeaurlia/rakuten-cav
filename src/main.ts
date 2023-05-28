@@ -69,6 +69,11 @@ async function calcCardStatement(page: Page, downloadDir: string, beforeMonth: n
 
   const selectedCardName = await getSelectedCardName(page)
   const selectedCardFilePath = await downloadStatement(page, downloadDir)
+
+  if (selectedCardFilePath === null) {
+    return cardStatements
+  }
+
   const total = await sumTotalPayment(selectedCardFilePath)
   cardStatements.push({ cardName: selectedCardName, total })
 
@@ -80,6 +85,11 @@ async function calcCardStatement(page: Page, downloadDir: string, beforeMonth: n
   for (const option of availableCardOptions) {
     await selectCard(page, option)
     const cardFilePath = await downloadStatement(page, downloadDir)
+
+    if (cardFilePath === null) {
+      continue
+    }
+
     const total = await sumTotalPayment(cardFilePath)
     cardStatements.push({ cardName: option, total })
   }
@@ -121,10 +131,12 @@ async function moveToStatementPage(page: Page, beforeMonth?: number) {
 async function getAvailableCardOptions(page: Page): Promise<string[]> {
   const availableOptionsTexts = await page.evaluate(() => {
     const cardSelect = <HTMLSelectElement>document.querySelector('.stmt-head-regist-card__select__box')
-    return Array.from(cardSelect.querySelectorAll('option'))
-      .filter((option) => !option.innerText.includes('利用不可'))
-      .filter((option) => option.selected === false)
-      .map((option) => option.innerText)
+    return (
+      Array.from(cardSelect.querySelectorAll('option'))
+        // .filter((option) => !option.innerText.includes('利用不可'))
+        .filter((option) => option.selected === false)
+        .map((option) => option.innerText)
+    )
   })
   return availableOptionsTexts
 }
@@ -147,9 +159,21 @@ async function getSelectedCardName(page: Page): Promise<string> {
  * @param  downloadDir ダウンロード先のディレクトリ
  * @returns ダウンロードしたファイルのパス
  */
-async function downloadStatement(page: Page, downloadDir: string): Promise<string> {
-  const downloadPromise = page.waitForEvent('download', { timeout: 10000 })
-  await page.click('.stmt-c-btn-dl.stmt-csv-btn')
+async function downloadStatement(page: Page, downloadDir: string): Promise<string | null> {
+  // 10秒でタイムアウト、エラーは握り潰して、nullを返す
+  const downloadPromise = await page.waitForEvent('download', { timeout: 10000 }).catch(() => null)
+
+  if (downloadPromise === null) {
+    return null
+  }
+
+  const el = page.locator('.stmt-c-btn-dl.stmt-csv-btn')
+
+  if (!(await el.count())) {
+    return null
+  }
+  await el.click()
+
   const download = await downloadPromise
   const unixtime = Math.floor(new Date().getTime() / 1000)
   const downloadPath = path.join(downloadDir, unixtime + 'rakuten-card.csv')
